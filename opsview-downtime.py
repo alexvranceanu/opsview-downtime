@@ -1,24 +1,43 @@
+import sys
 import argparse, getpass
 import urllib, urllib2
 import json
+
+#Define global verbose variable
+verbose=False
 
 def getLoginToken(s,u,p):
     opsview_server=s
     opsview_user=u
     opsview_password=p
+    global verbose
     
-    ops_cookies = urllib2.HTTPCookieProcessor()
-    ops_opener = urllib2.build_opener(ops_cookies)
+    #Create authentication headers
+    auth_headers = {
+        "Content-Type": "application/json"
+    }
     
-    opsview = ops_opener.open (
-        urllib2.Request(opsview_server + "/rest/login",
-        urllib.urlencode(dict({
-            'username': opsview_user,
-            'password': opsview_password,
-            }))
-        )
-    )
+    #Create authentication JSON
+    auth_request = json.dumps({
+        "username": opsview_user,
+        "password": opsview_password
+    })
     
+    if verbose:
+        print ("\nAuth JSON request:\n%s\n" % auth_request)
+        print ("\nAuthenticating...\n")
+    
+    #Connect
+    try:
+        ops_cookies = urllib2.HTTPCookieProcessor()
+        ops_opener = urllib2.build_opener(ops_cookies)
+        opsview = ops_opener.open(urllib2.Request(opsview_server + "/rest/login", auth_request, auth_headers))
+    #Exit if there is a problem authenticating
+    except urllib2.URLError, e:
+        print("Error: %s: %s" % (e.code, e.read()))
+        sys.exit()
+    
+    #Read response
     opsview_response = opsview.read()
     response = eval(opsview_response)
     
@@ -26,6 +45,7 @@ def getLoginToken(s,u,p):
         print("Unexpected message from Opsview server: %s" % response_text)
         sys.exit()
 
+    #Grab the token from the response
     if "token" in response:
         opsview_token = response["token"]
     else:
@@ -42,14 +62,15 @@ def scheduleDowntime(s,u,token,h,starttime,endtime,c):
     opsview_host=h
     opsview_endtime=endtime
     opsview_comment=c
+    global verbose
     
     #Create header request
-    headers = {
+    downtime_headers = {
         "Content-Type": "application/json",
         "X-Opsview-Username": opsview_user,
         "X-Opsview-Token": opsview_token,
     }
-
+    
     #Create JSON request
     downtime_request = json.dumps({
         "starttime":opsview_starttime,
@@ -57,8 +78,13 @@ def scheduleDowntime(s,u,token,h,starttime,endtime,c):
         "comment":opsview_comment
     })
     
+    if verbose:
+        print("\nDowntime headers:\n%s\n" % downtime_headers)
+        print("\nDowntime JSON request:\n%s\n" % downtime_request)
+        print("\nScheduling downtime...\n")
+    
     #Create the URL request object
-    opsview_request = urllib2.Request(opsview_server + "/rest/downtime?host=" + opsview_host, downtime_request, headers)
+    opsview_request = urllib2.Request(opsview_server + "/rest/downtime?host=" + opsview_host, downtime_request, downtime_headers)
     
     #Connect
     try:
@@ -67,7 +93,7 @@ def scheduleDowntime(s,u,token,h,starttime,endtime,c):
         opsview = opsview_opener.open(opeview_request)
     #Fail if connection error
     except urllib2.URLError, e:
-        print("Could not schedule downtime for %s: %s: %s" % (opsview_host,e.code,e.read))
+        print("Could not schedule downtime for %s: %s: %s" % (opsview_host,e.code,e.read()))
     
     print "Downtime request result:"
     print opsview.read()
@@ -104,13 +130,21 @@ def main():
         print "This functionality is not yet implemented."
         return 0;
     
-    #Get login token from Opsview
-    token = getLoginToken(args.server,args.user,args.password)
+    #Print verbose
     if args.verbose:
+        global verbose
+        verbose=True
+    
+    if verbose:
+        print("\nServer: %s\nUsername: %s\nHost: %s\nPassword: %s" % (args.server[0],args.user[0],args.opsviewhost[0],str(args.password)))
+    
+    #Get login token from Opsview
+    token = getLoginToken(args.server[0],args.user[0],str(args.password))
+    if verbose:
         print("Token: %s" % token)
         
     #Schedule downtime for host
-    scheduleDowntime(args.server,args.user,token,args.opsviewhost,args.starttime,args.endtime,args.comment)
+    scheduleDowntime(args.server[0],args.user[0],token,args.opsviewhost[0],args.starttime[0],args.endtime[0],args.comment[0])
 
 if __name__ == "__main__":
     main()

@@ -1,3 +1,11 @@
+#Default settings
+opsview_server="https://localhost"
+opsview_username=None
+#Leave the password to None for security reasons
+opsview_password=None
+
+###############################################################################
+
 import sys
 import argparse, getpass
 import urllib2
@@ -98,19 +106,28 @@ def scheduleDowntime(s,u,token,h,starttime,endtime,c):
     #Fail if connection error
     except urllib2.URLError, e:
         print("Could not schedule downtime for %s: %s: %s" % (opsview_host,e.code,e.read()))
-        sys.exit()
+        return
     
-    print "Downtime request result:"
-    print opsview.read()
+    opsview_result = opsview.read()
+    
+    if verbose:
+        print("Received response: %s" % opsview_result)
+        
+    if "summary" in opsview_result:
+        print("DONE: %d" % opsview_host)
 
 def main():
+    #Initiate global variables
+    global opsview_server
+    global opsview_username
+    
     #Initiate argument parser
     parser = argparse.ArgumentParser(description='Opsview Downtime Tool')
 
     #Define standard options
-    parser.add_argument('-u', '--user', nargs=1, action='store', dest='user', help='Opsview username. Will prompt if not provided.', default=None, required=False, metavar='OpsviewUser')
-    parser.add_argument('-p', '--password', nargs=1, action='store', dest='password', help='Opsview password. Will prompt if not provided.', default=None, required=False, metavar='OpsviewPassword')
-    parser.add_argument('-s', '--server', nargs=1, action='store', dest='server', help='Opsview server', default=["https://localhost"], required=False, metavar='OpsviewServer')
+    parser.add_argument('-u', '--user', nargs=1, action='store', dest='user', help='Opsview username. Will prompt if not provided.', default=[opsview_username], required=False, metavar='OpsviewUser')
+    parser.add_argument('-p', '--password', nargs=1, action='store', dest='password', help='Opsview password. Will prompt if not provided.', default=[opsview_password], required=False, metavar='OpsviewPassword')
+    parser.add_argument('-s', '--server', nargs=1, action='store', dest='server', help='Opsview server', default=[opsview_server], required=False, metavar='OpsviewServer')
     parser.add_argument('-m', '--comment', nargs=1, action='store', dest='comment', help='Downtime comment', default=["Scheduled downtime."], required=False, metavar='DowntimeComment')
     parser.add_argument('-t', '--starttime', nargs=1, action='store', dest='starttime', help='When to start the downtime. Default: now', default=["now"], required=False, metavar='DowntimeStartTime')
     parser.add_argument('-T', '--endtime', nargs=1, action='store', dest='endtime', help='How much downtime (eg. +30m, +1h). Default: +2h', default=["+2h"], required=False, metavar='DowntimeEndTime')
@@ -151,13 +168,13 @@ def main():
             print(host)
 
     #Read user password if not specified in arguments
-    if not args.user:
+    if not args.user[0]:
         args.user = [raw_input("Username: ")]
         while not args.user[0]:
             args.user = [raw_input("Username: ")]
 
     #Read user password if not specified in arguments
-    if not args.password:
+    if not args.password[0]:
         args.password = [getpass.getpass()]
         while not args.password[0]:
             args.password = [getpass.getpass()]

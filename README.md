@@ -4,6 +4,7 @@ opsview-downtime
 This tool allow you to quickly and conveniently schedule downtime
 for Opsview hosts from your favourite terminal.
 
+<pre>
 usage: opsview-downtime.py [-h] [-u OpsviewUser] [-p OpsviewPassword]
                            [-s OpsviewServer] [-m DowntimeComment]
                            [-t DowntimeStartTime] [-T DowntimeEndTime] [-v]
@@ -43,5 +44,4 @@ Example InputFile:
 host1.example.com
 host2.example.com
 host3.example.com
-
-
+</pre>

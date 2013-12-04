@@ -114,7 +114,7 @@ def scheduleDowntime(s,u,token,h,starttime,endtime,c):
         print("Received response: %s" % opsview_result)
         
     if "summary" in opsview_result:
-        print("DONE: %d" % opsview_host)
+        print("DONE: %s" % opsview_host)
 
 def main():
     #Initiate global variables
